@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neraca Pembayaran Hutang</title>
+  <style>
+    :root { color-scheme: dark; --bg:#080b16; --panel:rgba(15,23,43,.82); --cyan:#55d7ff; --violet:#8b7cff; --green:#42e8a4; --red:#ff6b8a; --muted:#96a2bd; --line:rgba(149,171,215,.16); }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter, "Segoe UI", Arial, sans-serif; background:var(--bg); color:#edf4ff; min-height:100vh; }
+    body::before { content:""; position:fixed; inset:0; z-index:-2; background:radial-gradient(circle at 15% 10%, rgba(85,215,255,.12), transparent 28%), radial-gradient(circle at 85% 20%, rgba(139,124,255,.14), transparent 30%), linear-gradient(135deg,#080b16 0%,#0a1020 55%,#080b16 100%); }
+    body::after { content:""; position:fixed; inset:0; z-index:-1; opacity:.18; background-image:linear-gradient(rgba(85,215,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(85,215,255,.08) 1px,transparent 1px); background-size:38px 38px; mask-image:linear-gradient(to bottom,black,transparent 75%); }
+    header { position:relative; padding:20px 24px; border-bottom:1px solid var(--line); background:rgba(8,11,22,.72); backdrop-filter:blur(18px); }
+    header::after { content:""; position:absolute; left:24px; bottom:-1px; width:190px; height:2px; background:linear-gradient(90deg,var(--cyan),var(--violet),transparent); box-shadow:0 0 12px var(--cyan); }
+    header h1 { margin:0; font-size:22px; letter-spacing:.5px; text-transform:uppercase; text-shadow:0 0 18px rgba(85,215,255,.28); }
+    header p { margin:5px 0 0; color:var(--muted); font-size:13px; }
+    .brand { display:flex; align-items:center; gap:12px; padding-right:130px; }
+    .brand-logo { position:relative; width:52px; height:52px; flex:none; display:grid; place-items:center; border-radius:14px; border:1px solid rgba(85,215,255,.32); background:linear-gradient(145deg,rgba(85,215,255,.18),rgba(139,124,255,.18)); box-shadow:0 0 22px rgba(85,215,255,.16),inset 0 1px rgba(255,255,255,.16),0 5px 0 rgba(7,10,20,.85); transform:rotate(-2deg); }
+    .brand-logo::before { content:""; position:absolute; inset:5px; border-radius:10px; border:1px solid rgba(255,255,255,.09); }
+    .brand-logo svg { position:relative; width:38px; height:38px; filter:drop-shadow(0 0 6px rgba(85,215,255,.62)); }
+    .running-credit { overflow:hidden; width:100%; border-bottom:1px solid rgba(85,215,255,.12); background:rgba(85,215,255,.055); color:#b9edff; }
+    .running-credit-track { display:inline-flex; width:max-content; white-space:nowrap; animation:runningText 18s linear infinite; }
+    .running-credit-track span { display:inline-block; padding:7px 36px 7px 0; font-size:12px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; text-shadow:0 0 10px rgba(85,215,255,.42); }
+    .running-credit:hover .running-credit-track { animation-play-state:paused; }
+    @keyframes runningText { from { transform:translateX(100vw); } to { transform:translateX(-100%); } }
+    .nav-tabs { position:sticky; top:0; z-index:20; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; padding:8px; background:rgba(8,11,22,.92); backdrop-filter:blur(14px); border-bottom:1px solid var(--line); }
+    .nav-tab { min-height:42px; border-radius:8px; border:1px solid var(--line); background:#11182b; color:#aebbd4; cursor:pointer; font-weight:700; }
+    .nav-tab.active { color:white; border-color:rgba(85,215,255,.38); background:linear-gradient(135deg,rgba(57,127,245,.38),rgba(139,124,255,.28)); box-shadow:0 0 18px rgba(85,215,255,.08),inset 0 1px rgba(255,255,255,.12); }
+    .page { display:none; }
+    .page.active { display:block; }
+    #appShell { display:none; }
+    #appShell.authenticated { display:block; }
+    .login-screen { position:fixed; inset:0; z-index:100; display:grid; place-items:center; padding:16px; background:radial-gradient(circle at 50% 20%,rgba(85,215,255,.12),transparent 32%),linear-gradient(135deg,#080b16,#0c1224); }
+    .login-screen.hidden { display:none; }
+    .login-card { width:min(400px,100%); padding:28px; border-radius:18px; border:1px solid var(--line); background:rgba(15,23,43,.92); backdrop-filter:blur(18px); box-shadow:0 24px 60px rgba(0,0,0,.42),0 8px 0 rgba(5,8,16,.9),inset 0 1px rgba(255,255,255,.06); }
+    .login-card h2 { margin:0 0 6px; font-size:24px; text-align:center; }
+    .login-card > p { margin:0 0 20px; text-align:center; color:var(--muted); font-size:13px; }
+    .login-form { display:grid; gap:10px; }
+    .login-form label { color:#b9c7de; font-size:12px; font-weight:700; }
+    .login-form input { width:100%; min-height:46px; }
+    .login-form button { min-height:46px; margin-top:4px; }
+    .login-error { min-height:18px; color:#ff9cb2; text-align:center; font-size:12px; }
+    .login-hint { margin-top:12px; padding:10px; border-radius:8px; background:rgba(85,215,255,.07); border:1px solid rgba(85,215,255,.12); color:#b9c7de; font-size:12px; text-align:center; }
+    .logout-button { position:absolute; right:24px; top:20px; min-height:38px; padding:8px 12px; }
+    @media (max-width:500px) { .logout-button { position:fixed; right:10px; top:auto; bottom:10px; z-index:30; min-height:44px; box-shadow:0 10px 24px rgba(0,0,0,.5); } }
+    main { perspective:1200px; }
+    .cards { perspective:900px; }
+    .card, .panel, .step { transform-style:preserve-3d; }
+    .card {
+      transform:translateZ(0);
+      transition:transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+      box-shadow:inset 0 1px rgba(255,255,255,.06),0 16px 28px rgba(0,0,0,.28),0 4px 0 rgba(8,12,24,.9);
+    }
+    .card:hover {
+      transform:translateY(-5px) rotateX(2deg);
+      border-color:rgba(85,215,255,.34);
+      box-shadow:inset 0 1px rgba(255,255,255,.08),0 22px 38px rgba(0,0,0,.34),0 6px 0 rgba(8,12,24,.92),0 0 24px rgba(85,215,255,.08);
+    }
+    .panel {
+      box-shadow:inset 0 1px rgba(255,255,255,.05),0 20px 40px rgba(0,0,0,.28),0 7px 0 rgba(7,10,20,.78);
+    }
+    .step { transition:transform .22s ease; box-shadow:0 7px 0 rgba(7,10,20,.75),inset 0 1px rgba(255,255,255,.04); }
+    .step:hover { transform:translateY(-3px) rotateX(2deg); }
+    .step-number { box-shadow:0 5px 0 rgba(48,43,111,.9),0 9px 18px rgba(139,124,255,.28),inset 0 1px rgba(255,255,255,.25); }
+    .primary { transform:translateZ(6px); box-shadow:0 7px 0 #303b7f,0 14px 24px rgba(87,112,255,.28),inset 0 1px rgba(255,255,255,.25); transition:transform .12s ease,box-shadow .12s ease,filter .12s ease; }
+    .primary:hover { transform:translateY(-2px) translateZ(8px); box-shadow:0 9px 0 #303b7f,0 18px 28px rgba(87,112,255,.34),inset 0 1px rgba(255,255,255,.28); }
+    .primary:active { transform:translateY(5px) translateZ(0); box-shadow:0 2px 0 #303b7f,0 8px 16px rgba(87,112,255,.22); }
+    .danger { box-shadow:0 3px 0 rgba(57,14,27,.9); }
+    input, select { box-shadow:inset 0 3px 8px rgba(0,0,0,.28),0 1px rgba(255,255,255,.04); }
+    main { max-width:1400px; margin:auto; padding:20px; }
+    .cards { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:12px; margin-bottom:16px; }
+    .card { position:relative; overflow:hidden; background:linear-gradient(145deg,rgba(21,31,57,.9),rgba(12,18,35,.9)); border:1px solid var(--line); border-radius:14px; padding:18px; box-shadow:inset 0 1px rgba(255,255,255,.04),0 12px 30px rgba(0,0,0,.18); }
+    .card::before { content:""; position:absolute; width:70px; height:70px; right:-25px; bottom:-35px; border-radius:50%; background:var(--cyan); filter:blur(28px); opacity:.24; }
+    .card small { color:var(--muted); display:block; margin-bottom:7px; text-transform:uppercase; letter-spacing:1px; font-size:11px; }
+    .card strong { font-size:21px; color:#fff; text-shadow:0 0 12px rgba(85,215,255,.22); }
+    .panel { background:var(--panel); backdrop-filter:blur(16px); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:16px; box-shadow:inset 0 1px rgba(255,255,255,.04),0 18px 45px rgba(0,0,0,.24); }
+    h2 { color:#cfeeff; font-size:17px; margin-top:0; letter-spacing:.3px; }
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px; }
+    input, select, button { border:1px solid var(--line); border-radius:8px; padding:10px 12px; font:inherit; background:#11182b; color:#edf4ff; outline:none; }
+    input:focus, select:focus { border-color:var(--cyan); box-shadow:0 0 0 3px rgba(85,215,255,.1),0 0 18px rgba(85,215,255,.08); }
+    input[type="number"] { min-width:150px; }
+    button { cursor:pointer; border:0; font-weight:600; }
+    .primary { background:linear-gradient(135deg,#397ff5,var(--violet)); color:white; box-shadow:0 8px 20px rgba(87,112,255,.22),inset 0 1px rgba(255,255,255,.22); }
+    .primary:hover { filter:brightness(1.12); transform:translateY(-1px); }
+    .danger { background:rgba(255,107,138,.1); color:#ff9cb2; border:1px solid rgba(255,107,138,.22); }
+    .danger:hover { background:rgba(255,107,138,.18); }
+    .table-wrap { overflow-x:auto; }
+    table { border-collapse:separate; border-spacing:0; width:100%; min-width:1000px; }
+    th, td { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:10px; text-align:left; }
+    th { position:sticky; top:0; z-index:2; background:#171f38; color:#a9dfff; white-space:nowrap; border-top:1px solid var(--line); text-transform:uppercase; font-size:11px; letter-spacing:.55px; }
+    th:first-child { border-left:1px solid var(--line); }
+    td:first-child { border-left:1px solid var(--line); }
+    tbody tr { background:rgba(13,20,38,.78); }
+    tbody tr:nth-child(even) { background:rgba(18,27,49,.78); }
+    tbody tr:hover { background:rgba(85,215,255,.065); box-shadow:inset 3px 0 var(--cyan); }
+    td.number, th.number { text-align:right; }
+    td.center, th.center { text-align:center; }
+    .status { border-radius:999px; padding:5px 9px; font-size:11px; font-weight:800; white-space:nowrap; letter-spacing:.3px; box-shadow:inset 0 0 12px rgba(255,255,255,.05); }
+    .paid { background:rgba(66,232,164,.12); color:#7fffc7; border:1px solid rgba(66,232,164,.28); }
+    .partial { background:rgba(255,210,79,.12); color:#ffe18a; border:1px solid rgba(255,210,79,.24); }
+    .unpaid { background:rgba(255,107,138,.11); color:#ff9cb2; border:1px solid rgba(255,107,138,.24); }
+    .progress { height:7px; background:#222b42; border-radius:999px; overflow:hidden; min-width:100px; box-shadow:inset 0 1px 4px rgba(0,0,0,.4); }
+    .progress div { height:100%; background:linear-gradient(90deg,var(--cyan),var(--violet),var(--green)); box-shadow:0 0 10px rgba(85,215,255,.55); }
+    .note { background:linear-gradient(90deg,rgba(85,215,255,.08),rgba(139,124,255,.08)); border:1px solid rgba(85,215,255,.16); color:#b9c7de; padding:11px; border-radius:8px; margin-bottom:12px; }
+    .steps { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; margin-bottom:16px; }
+    .step { background:rgba(13,20,38,.9); border:1px solid var(--line); border-radius:12px; padding:12px; display:flex; align-items:center; gap:10px; }
+    .step-number { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; flex:none; background:linear-gradient(135deg,#397ff5,var(--violet)); font-weight:800; box-shadow:0 0 16px rgba(139,124,255,.22); }
+    .step strong { display:block; font-size:13px; }
+    .step span { color:var(--muted); font-size:12px; }
+    @media (max-width:900px) { .cards { grid-template-columns:repeat(2, 1fr); } .steps { grid-template-columns:1fr; } }
+    @media (max-width:500px) {
+      header { padding:16px; }
+      header h1 { font-size:18px; }
+      header p { font-size:12px; line-height:1.45; }
+      header::after { left:16px; width:140px; }
+      .brand { padding-right:0; gap:9px; }
+      .brand-logo { width:44px; height:44px; border-radius:12px; }
+      .brand-logo svg { width:32px; height:32px; }
+      main { padding:10px; }
+      .cards { grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; }
+      .card { padding:12px; border-radius:10px; }
+      .card small { font-size:9px; letter-spacing:.5px; }
+      .card strong { font-size:15px; }
+      .panel { padding:12px; border-radius:10px; margin-bottom:10px; }
+      h2 { font-size:15px; }
+      .steps { gap:7px; margin-bottom:10px; }
+      .step { padding:9px; }
+      .step-number { width:30px; height:30px; }
+      .running-credit-track { animation-duration:12s; }
+      .toolbar { display:grid; grid-template-columns:1fr; gap:8px; }
+      .toolbar input, .toolbar select, .toolbar button { width:100%; min-width:0; }
+      .toolbar button { min-height:44px; }
+      .table-wrap { margin:0 -12px -12px; border-radius:0 0 10px 10px; }
+      table { min-width:760px; }
+      th, td { padding:8px; font-size:12px; }
+      .note { font-size:12px; line-height:1.5; }
+      .card:hover, .step:hover { transform:none; }
+      .card, .panel, .step { box-shadow:inset 0 1px rgba(255,255,255,.05),0 8px 18px rgba(0,0,0,.22); }
+      .primary { box-shadow:0 4px 0 #303b7f,0 8px 16px rgba(87,112,255,.22); }
+      .primary:hover { transform:none; }
+    }
+  </style>
+</head>
+<body>
+  <section class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <h2>Login</h2>
+      <p>Neraca Pembayaran Hutang</p>
+      <form class="login-form" id="loginForm">
+        <label for="loginUsername">Nama Pengguna</label>
+        <input id="loginUsername" type="text" autocomplete="username" placeholder="Masukkan nama pengguna" required>
+        <label for="loginPassword">Kata Sandi</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Masukkan kata sandi" required>
+        <button class="primary" type="submit">Masuk ke Aplikasi</button>
+        <div class="login-error" id="loginError" role="alert"></div>
+      </form>
+    </div>
+  </section>
+
+  <div id="appShell">
+  <header>
+    <div class="brand">
+      <div class="brand-logo" aria-label="Logo MMK">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="9" y="13" width="30" height="24" rx="5" stroke="#B9EDFF" stroke-width="2"/>
+          <path d="M15 30V20H19L24 25L29 20H33V30" stroke="#55D7FF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M15 31H33" stroke="#8B7CFF" stroke-width="2" stroke-linecap="round"/>
+          <path d="M12 10H36M24 7V13" stroke="#8B7CFF" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="33" cy="17" r="3" fill="#42E8A4"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Neraca Pembayaran Hutang</h1>
+        <p>MMK Business Management</p>
+      </div>
+    </div>
+    <button class="danger logout-button" id="logoutButton">Keluar</button>
+  </header>
+  <div class="running-credit" aria-label="Teks berjalan kredit pembuat">
+    <div class="running-credit-track">
+      <span>◆ Create by Adam Hermansyah ◆ Create by Adam Hermansyah ◆ Create by Adam Hermansyah ◆</span>
+      <span aria-hidden="true">◆ Create by Adam Hermansyah ◆ Create by Adam Hermansyah ◆ Create by Adam Hermansyah ◆</span>
+    </div>
+  </div>
+  <nav class="nav-tabs" aria-label="Navigasi halaman">
+    <button class="nav-tab active" data-page="ringkasan">Ringkasan</button>
+    <button class="nav-tab" data-page="daftar">Daftar Orang</button>
+    <button class="nav-tab" data-page="pembayaran">Pembayaran</button>
+  </nav>
+  <main>
+    <section class="page active" data-page-view="ringkasan">
+      <section class="steps" aria-label="Cara menggunakan aplikasi">
+        <div class="step"><div class="step-number">1</div><div><strong>Tambah orang</strong><span>Isi nama dan pilih paket pembayaran</span></div></div>
+        <div class="step"><div class="step-number">2</div><div><strong>Catat pembayaran</strong><span>Pilih nama dan masukkan jumlah bayar</span></div></div>
+        <div class="step"><div class="step-number">3</div><div><strong>Lihat hasilnya</strong><span>Sisa hutang dan status dihitung sendiri</span></div></div>
+      </section>
+      <section class="cards">
+        <article class="card"><small>Jumlah Orang</small><strong id="totalPeople">0 orang</strong></article>
+        <article class="card"><small>Total Hutang</small><strong id="totalDebt">Rp0</strong></article>
+        <article class="card"><small>Total Sudah Dibayar</small><strong id="totalPaid">Rp0</strong></article>
+        <article class="card"><small>Sisa Hutang</small><strong id="totalRemaining">Rp0</strong></article>
+      </section>
+    </section>
+
+    <section class="page panel" data-page-view="daftar">
+      <h2>Daftar Orang Berhutang</h2>
+      <div class="toolbar">
+        <input id="newName" type="text" placeholder="Nama orang" aria-label="Nama orang" title="Nama orang yang berhutang">
+        <select id="newPackage">
+          <option value="35000|50">Rp35.000 × 50 kali</option>
+          <option value="48000|75">Rp48.000 × 75 kali</option>
+        </select>
+        <button class="primary" id="addDebtor">Tambah Orang</button>
+        <button class="danger" id="resetData">Reset Semua Data</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>Nama</th><th>Paket</th><th class="number">Bayar Per Kali</th><th class="center">Jumlah Kali Bayar</th><th class="number">Total Hutang</th><th class="number">Sudah Dibayar</th><th class="center">Sisa Hutang</th><th class="center">Kemajuan</th><th class="center">Status</th><th></th></tr></thead>
+          <tbody id="debtorsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="page panel" data-page-view="pembayaran">
+      <h2>Input Pembayaran Hutang</h2>
+      <div class="note">1. Pilih nama orang. 2. Isi tanggal dan jumlah uang yang dibayar. 3. Tekan <b>Simpan Pembayaran</b>. Data tersimpan otomatis di browser ini.</div>
+      <div class="toolbar">
+        <input id="payDate" type="date">
+        <select id="payName"></select>
+        <input id="payAmount" type="number" min="1" placeholder="Nominal pembayaran">
+        <input id="payNote" type="text" placeholder="Catatan (opsional)">
+        <button class="primary" id="addPayment">Simpan Pembayaran</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>No</th><th>Tanggal</th><th>Nama Orang</th><th class="center">Pembayaran Ke-</th><th class="number">Jumlah Uang</th><th>Keterangan</th><th></th></tr></thead>
+          <tbody id="paymentsBody"></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+  </div>
+
+  <script>
+    const LOGIN_SESSION_KEY = "neraca-hutang-login";
+    const LOGIN_USERNAME = "bisnis mmk";
+    const LOGIN_PASSWORD = "crotts";
+
+    function showAuthenticatedApp() {
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("appShell").classList.add("authenticated");
+    }
+
+    if (sessionStorage.getItem(LOGIN_SESSION_KEY) === "active") {
+      showAuthenticatedApp();
+    }
+
+    document.getElementById("loginForm").addEventListener("submit", event => {
+      event.preventDefault();
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value;
+      const error = document.getElementById("loginError");
+
+      if (username === LOGIN_USERNAME && password === LOGIN_PASSWORD) {
+        sessionStorage.setItem(LOGIN_SESSION_KEY, "active");
+        error.textContent = "";
+        showAuthenticatedApp();
+        document.getElementById("loginPassword").value = "";
+      } else {
+        error.textContent = "Nama pengguna atau kata sandi salah.";
+        document.getElementById("loginPassword").select();
+      }
+    });
+
+    document.getElementById("logoutButton").addEventListener("click", () => {
+      sessionStorage.removeItem(LOGIN_SESSION_KEY);
+      document.getElementById("appShell").classList.remove("authenticated");
+      document.getElementById("loginScreen").classList.remove("hidden");
+      document.getElementById("loginUsername").value = "";
+      document.getElementById("loginPassword").value = "";
+      document.getElementById("loginError").textContent = "";
+      document.getElementById("loginUsername").focus();
+    });
+    const STORAGE_KEY = "neraca-hutang-v1";
+    const rupiah = value => new Intl.NumberFormat("id-ID", {style:"currency", currency:"IDR", maximumFractionDigits:0}).format(value || 0);
+    const today = () => new Date().toISOString().slice(0, 10);
+
+    let state = {
+      debtors: [
+        {id:crypto.randomUUID(), name:"Orang Paket 35.000 - 1", amount:35000, installments:50},
+        {id:crypto.randomUUID(), name:"Orang Paket 35.000 - 2", amount:35000, installments:50},
+        {id:crypto.randomUUID(), name:"Orang Paket 48.000 - 1", amount:48000, installments:75}
+      ],
+      payments:[]
+    };
+
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try { state = JSON.parse(saved); } catch (_) {}
+    }
+
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); render(); }
+    function paymentsFor(id) { return state.payments.filter(p => p.debtorsId === id); }
+    function paidFor(id) { return paymentsFor(id).reduce((sum, p) => sum + Number(p.amount), 0); }
+
+    function render() {
+      const tbody = document.getElementById("debtorsBody");
+      tbody.innerHTML = "";
+      let totalDebt = 0, totalPaid = 0;
+
+      state.debtors.forEach((d, index) => {
+        const paid = paidFor(d.id);
+        const debt = d.amount * d.installments;
+        const remaining = Math.max(debt - paid, 0);
+        const count = paymentsFor(d.id).length;
+        const percent = debt ? Math.min(paid / debt * 100, 100) : 0;
+        const status = remaining === 0 ? ["LUNAS","paid"] : count > 0 ? ["MENGANGSUR","partial"] : ["BELUM BAYAR","unpaid"];
+        totalDebt += debt; totalPaid += paid;
+
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="center">${index + 1}</td>
+          <td>${escapeHtml(d.name)}</td>
+          <td>Rp${d.amount.toLocaleString("id-ID")} × ${d.installments} kali</td>
+          <td class="number">${rupiah(d.amount)}</td>
+          <td class="center">${d.installments}</td>
+          <td class="number">${rupiah(debt)}</td>
+          <td class="number">${rupiah(paid)}</td>
+          <td class="number">${rupiah(remaining)}</td>
+          <td><div class="progress" title="${percent.toFixed(1)}%"><div style="width:${percent}%"></div></div></td>
+          <td class="center"><span class="status ${status[1]}">${status[0]}</span></td>
+          <td><button class="danger" data-remove-debt="${d.id}">Hapus</button></td>`;
+        tbody.appendChild(row);
+      });
+
+      document.getElementById("totalPeople").textContent = `${state.debtors.length} orang`;
+      document.getElementById("totalDebt").textContent = rupiah(totalDebt);
+      document.getElementById("totalPaid").textContent = rupiah(totalPaid);
+      document.getElementById("totalRemaining").textContent = rupiah(Math.max(totalDebt - totalPaid, 0));
+
+      const payName = document.getElementById("payName");
+      const currentName = payName.value;
+      payName.innerHTML = state.debtors.map(d => `<option value="${d.id}">${escapeHtml(d.name)}</option>`).join("");
+      if ([...payName.options].some(o => o.value === currentName)) payName.value = currentName;
+
+      const paymentsBody = document.getElementById("paymentsBody");
+      paymentsBody.innerHTML = "";
+      state.payments.forEach((p, index) => {
+        const debtor = state.debtors.find(d => d.id === p.debtorsId);
+        const count = state.payments.filter(x => x.debtorsId === p.debtorsId && Number(x.sequence) <= Number(p.sequence)).length;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td class="center">${index + 1}</td>
+          <td>${formatDate(p.date)}</td>
+          <td>${escapeHtml(debtor ? debtor.name : "(Orang dihapus)")}</td>
+          <td class="center">${count}</td>
+          <td class="number">${rupiah(Number(p.amount))}</td>
+          <td>${escapeHtml(p.note || "-")}</td>
+          <td><button class="danger" data-remove-payment="${p.id}">Hapus</button></td>`;
+        paymentsBody.appendChild(row);
+      });
+    }
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value;
+      return div.innerHTML;
+    }
+    function formatDate(value) {
+      if (!value) return "-";
+      const [y,m,d] = value.split("-");
+      return `${d}/${m}/${y}`;
+    }
+
+    document.getElementById("payDate").value = today();
+    document.getElementById("addDebtor").addEventListener("click", () => {
+      const name = document.getElementById("newName").value.trim();
+      if (!name) return alert("Nama orang wajib diisi.");
+      const [amount, installments] = document.getElementById("newPackage").value.split("|").map(Number);
+      state.debtors.push({id:crypto.randomUUID(), name, amount, installments});
+      document.getElementById("newName").value = "";
+      save();
+    });
+
+    document.getElementById("addPayment").addEventListener("click", () => {
+      const debtorId = document.getElementById("payName").value;
+      const amount = Number(document.getElementById("payAmount").value);
+      const date = document.getElementById("payDate").value;
+      if (!debtorId) return alert("Pilih nama orang.");
+      if (!date) return alert("Tanggal wajib diisi.");
+      if (!amount || amount < 1) return alert("Nominal harus lebih dari 0.");
+      state.payments.push({
+        id:crypto.randomUUID(), debtorsId:debtorId, date, amount,
+        note:document.getElementById("payNote").value.trim(),
+        sequence:state.payments.filter(p => p.debtorsId === debtorId).length + 1
+      });
+      document.getElementById("payAmount").value = "";
+      document.getElementById("payNote").value = "";
+      save();
+    });
+
+    document.addEventListener("click", event => {
+      const removeDebtor = event.target.dataset.removeDebt;
+      const removePayment = event.target.dataset.removePayment;
+      if (removeDebtor && confirm("Hapus orang ini beserta semua riwayat pembayarannya?")) {
+        state.debtors = state.debtors.filter(d => d.id !== removeDebtor);
+        state.payments = state.payments.filter(p => p.debtorsId !== removeDebtor);
+        save();
+      }
+      if (removePayment && confirm("Hapus pembayaran ini?")) {
+        state.payments = state.payments.filter(p => p.id !== removePayment);
+        save();
+      }
+    });
+
+    document.getElementById("resetData").addEventListener("click", () => {
+      if (!confirm("Kembalikan aplikasi ke 3 orang awal dan hapus semua pembayaran?")) return;
+      state = {
+        debtors:[
+          {id:crypto.randomUUID(), name:"Orang Paket 35.000 - 1", amount:35000, installments:50},
+          {id:crypto.randomUUID(), name:"Orang Paket 35.000 - 2", amount:35000, installments:50},
+          {id:crypto.randomUUID(), name:"Orang Paket 48.000 - 1", amount:48000, installments:75}
+        ],
+        payments:[]
+      };
+      save();
+    });
+
+    document.querySelectorAll(".nav-tab").forEach(button => {
+      button.addEventListener("click", () => {
+        const page = button.dataset.page;
+        document.querySelectorAll(".nav-tab").forEach(tab => tab.classList.toggle("active", tab === button));
+        document.querySelectorAll("[data-page-view]").forEach(view => view.classList.toggle("active", view.dataset.pageView === page));
+        history.replaceState(null, "", "#" + page);
+        window.scrollTo({top:0, behavior:"smooth"});
+      });
+    });
+
+    const initialPage = location.hash.slice(1);
+    const initialTab = document.querySelector(`.nav-tab[data-page="${initialPage}"]`);
+    if (initialTab) initialTab.click();
+
+    render();
+  </script>
+</body>
+</html>
